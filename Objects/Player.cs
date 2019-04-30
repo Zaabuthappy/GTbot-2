@@ -1,22 +1,21 @@
 using System;
 using System.Text;
 
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson;
 
 namespace GTbot.Objects
 {
-
-	public class ClanMember
+	public class Player
 	{
 		[BsonId]
 		public ObjectId _id {get;set;}
 		[BsonElement]
-		public string SteamID {get;set;}
+		public int CurrentXP {get;set;}
 		[BsonElement]
-		public ObjectId PlayerID {get;set;}
+		public int CurrentLevel {get;set;}
 		[BsonElement]
-		[BsonIgnoreIfNull]
-		public string YoutubeID {get;set;}
+		public ulong DiscordID {get;set;}
+
 	}
 }

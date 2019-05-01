@@ -178,33 +178,37 @@ namespace GTbot.Commands
 		{
 			DiscordEmbedBuilder Embed = new DiscordEmbedBuilder();
 			ClanMember clanMember = new ClanMember();
-			
-			clanMember.DiscordID = m.Id;
-
 			IMongoDatabase Local = Program.Database.GetDatabase("local");
-			IMongoCollection<ClanMember> Membros;
-
-			Membros = Local.GetCollection<ClanMember>("membros");
-			IAsyncCursor<ClanMember> query = await Membros.FindAsync(x => x.DiscordID == m.Id);
-			List<ClanMember> resultado = query.ToList();
-
-			if(resultado.Count > 0)
-			{
-				Embed
-					.WithAuthor($"O membro [GTdL - {m.Username}] já foi cadastrado.")
-					.WithColor(Colors.SagiriPink);
-
-				await ctx.RespondAsync(embed: Embed);
-			}
+			IMongoCollection<ClanMember> Membros = Local.GetCollection<ClanMember>("membros");
+			IMongoCollection<Player> Player = Local.GetCollection<Player>("players");
+			IAsyncCursor<Player> query = await Player.FindAsync(x => x.DiscordID == m.Id);
+			List<Player> resultado = query.ToList();
+			if(resultado.Count == 0)
+				Player.InsertOne(new Player{DiscordID = m.Id, CurrentXP = 0, CurrentLevel = 0, _id = new ObjectId()});
 			else
 			{
-				Membros.InsertOne(clanMember);
-				Embed
-					.WithAuthor($"O membro [GTdL - {m.Username}] foi cadastrado com sucesso!")
-					.WithColor(Colors.SagiriBlue);
-				await ctx.RespondAsync(embed: Embed);
+				Player player = resultado[0];
+				IAsyncCursor<ClanMember> query2 = await Membros.FindAsync(x => x.PlayerID == player._id);
+				List<ClanMember> resultado2 = query2.ToList();
+
+				if(resultado2.Count > 0)
+				{
+					Embed
+						.WithAuthor($"O membro [GTdL - {m.Username}] já foi cadastrado.")
+						.WithColor(Colors.SagiriPink);
+
+					await ctx.RespondAsync(embed: Embed);
+				}
+				else
+				{
+					clanMember.PlayerID = player._id;
+					Membros.InsertOne(clanMember);
+					Embed
+						.WithAuthor($"O membro [GTdL - {m.Username}] foi cadastrado com sucesso!")
+						.WithColor(Colors.SagiriBlue);
+					await ctx.RespondAsync(embed: Embed);
+				}
 			}
-			
 		}
 		[Command("delmember"),Staff]
 		[Aliases("-m","rmm","delm")]
@@ -212,29 +216,38 @@ namespace GTbot.Commands
 		{
 			DiscordEmbedBuilder Embed = new DiscordEmbedBuilder();
 			ClanMember clanMember = new ClanMember();
-
+			
 			IMongoDatabase Local = Program.Database.GetDatabase("local");
+			IMongoCollection<Player> Player = Local.GetCollection<Player>("players");
 			IMongoCollection<ClanMember> Membros = Local.GetCollection<ClanMember>("membros");
-			IAsyncCursor<ClanMember> query = await Membros.FindAsync(x => x.DiscordID == m.Id);
-			List<ClanMember> resultado = query.ToList();
-
-			if(resultado.Count > 0)
-			{
-				Membros.DeleteOne(x => x.DiscordID == m.Id);
-				Embed
-					.WithAuthor($"O membro [GTdL - {m.Username}] foi removido com sucesso!")
-					.WithColor(Colors.SagiriBlue);
-				await ctx.RespondAsync(embed: Embed);
-			}
+			IAsyncCursor<Player> query = await Player.FindAsync(x => x.DiscordID == m.Id);
+			List<Player> resultado = query.ToList();
+			if(resultado.Count == 0)
+				Player.InsertOne(new Player{DiscordID = m.Id, CurrentXP = 0, CurrentLevel = 0, _id = new ObjectId()});
 			else
 			{
-				Embed
-					.WithAuthor($"O membro {m.Username} não foi cadastrado.")
-					.WithColor(Colors.SagiriPink);
-				await ctx.RespondAsync(embed:Embed);
+				Player player = resultado[0];
+				IAsyncCursor<ClanMember> query2 = await Membros.FindAsync(x => x.PlayerID == player._id);
+			       	List<ClanMember> resultado2 = query2.ToList();
+
+				if(resultado2.Count > 0)
+				{
+					Membros.DeleteOne(x => x.PlayerID == player._id);
+					Embed
+						.WithAuthor($"O membro [GTdL - {m.Username}] foi removido com sucesso!")
+						.WithColor(Colors.SagiriBlue);
+					await ctx.RespondAsync(embed: Embed);
+				}
+				else
+				{
+					Embed
+						.WithAuthor($"O membro {m.Username} não foi cadastrado.")
+						.WithColor(Colors.SagiriPink);
+					await ctx.RespondAsync(embed:Embed);
+				}
+		
 			}
 		}
-
 
 	}
 }
